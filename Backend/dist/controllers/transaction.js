@@ -191,7 +191,7 @@ const dashboardSummary = async (req, res) => {
                 query.date.$lte = parsedEnd;
             }
         }
-        const transactions = await transaction_1.default.find(query);
+        const transactions = (await transaction_1.default.find(query));
         const totalIncome = transactions
             .filter((transaction) => transaction.type === "income")
             .reduce((sum, transaction) => sum + transaction.amount, 0);

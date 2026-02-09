@@ -2,6 +2,8 @@ import { Response } from "express";
 import { AuthRequest } from "../middlewares/auth";
 import Transaction, { transactionCategories } from "../models/transaction";
 
+type TransactionCategory = (typeof transactionCategories)[number];
+
 const parseDate = (value?: string): Date | undefined => {
   if (!value) return undefined;
   const date = new Date(value);
@@ -146,7 +148,7 @@ export const updateTransaction = async (
 
     if (nextValues.type) existing.type = nextValues.type;
     if (nextValues.amount) existing.amount = nextValues.amount;
-    if (nextValues.category) existing.category = nextValues.category;
+    if (nextValues.category) existing.category = nextValues.category as TransactionCategory;
     if (typeof nextValues.description === "string") existing.description = nextValues.description;
 
     await existing.save();

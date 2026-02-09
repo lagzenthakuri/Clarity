@@ -23,6 +23,27 @@ export type DashboardSummary = {
   byCategory: Record<string, number>;
 };
 
+export type DailyPreset = {
+  _id: string;
+  name: string;
+  type: TransactionType;
+  amount: number;
+  category: string;
+  description: string;
+  active: boolean;
+};
+
+export type DailyMoneyAdvice = {
+  date: string;
+  income: number;
+  expense: number;
+  balance: number;
+  briefSummary: string;
+  doList: string[];
+  avoidList: string[];
+  source: "ai" | "fallback";
+};
+
 export type TransactionFilters = {
   category: string;
   type: "" | TransactionType;

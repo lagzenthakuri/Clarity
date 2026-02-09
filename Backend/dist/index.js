@@ -8,6 +8,8 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const express_1 = __importDefault(require("express"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const auth_1 = __importDefault(require("./routes/auth"));
+const dailyPresets_1 = __importDefault(require("./routes/dailyPresets"));
+const insights_1 = __importDefault(require("./routes/insights"));
 const transactions_1 = __importDefault(require("./routes/transactions"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -23,6 +25,8 @@ app.get("/api/health", (_req, res) => {
 });
 app.use("/api/auth", auth_1.default);
 app.use("/api/transactions", transactions_1.default);
+app.use("/api/daily-presets", dailyPresets_1.default);
+app.use("/api/insights", insights_1.default);
 app.use((error, _req, res, _next) => {
     res.status(500).json({ message: error.message || "Something went wrong" });
 });

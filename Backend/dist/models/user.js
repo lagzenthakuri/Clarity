@@ -19,7 +19,12 @@ const userSchema = new mongoose_1.default.Schema({
     },
     password: {
         type: String,
-        required: true,
+        required: false,
+    },
+    googleId: {
+        type: String,
+        unique: true,
+        sparse: true,
     },
 }, { timestamps: true });
 const User = mongoose_1.default.model("User", userSchema);

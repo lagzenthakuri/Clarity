@@ -1,13 +1,14 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
 const AuthPage = () => {
-  const { login, signup, loading } = useAuth();
+  const { login, signup, googleLogin, loading } = useAuth();
   const [isSignup, setIsSignup] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
 
   const submit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -23,6 +24,66 @@ const AuthPage = () => {
       setError("Authentication failed. Check your credentials and try again.");
     }
   };
+
+  useEffect(() => {
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!googleClientId || !googleButtonRef.current) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const renderGoogleButton = () => {
+      if (cancelled || !googleButtonRef.current || !window.google?.accounts?.id) {
+        return;
+      }
+
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async (response) => {
+          if (!response.credential) {
+            setError("Google authentication failed. Please try again.");
+            return;
+          }
+
+          setError("");
+          try {
+            await googleLogin(response.credential);
+          } catch {
+            setError("Google authentication failed. Please try again.");
+          }
+        },
+      });
+
+      googleButtonRef.current.innerHTML = "";
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: "outline",
+        size: "large",
+        shape: "pill",
+        text: isSignup ? "signup_with" : "signin_with",
+        width: 320,
+      });
+    };
+
+    if (window.google?.accounts?.id) {
+      renderGoogleButton();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = renderGoogleButton;
+    document.head.appendChild(script);
+
+    return () => {
+      cancelled = true;
+      script.onload = null;
+    };
+  }, [googleLogin, isSignup]);
 
   return (
     <main className="centered">
@@ -65,6 +126,12 @@ const AuthPage = () => {
             {loading ? "Please wait..." : isSignup ? "Create account" : "Login"}
           </button>
         </form>
+        <div className="auth-divider">or</div>
+        {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+          <div className="google-btn-wrap" ref={googleButtonRef} />
+        ) : (
+          <p className="muted">Set VITE_GOOGLE_CLIENT_ID to enable Google sign-in.</p>
+        )}
         <button className="ghost" onClick={() => setIsSignup((previous) => !previous)}>
           {isSignup ? "Already have an account? Login" : "New here? Create account"}
         </button>

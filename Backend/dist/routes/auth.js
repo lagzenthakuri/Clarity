@@ -6,5 +6,6 @@ const auth_2 = require("../middlewares/auth");
 const router = (0, express_1.Router)();
 router.post("/signup", auth_1.signup);
 router.post("/login", auth_1.login);
+router.post("/google", auth_1.googleLogin);
 router.get("/me", auth_2.authMiddleware, auth_1.me);
 exports.default = router;

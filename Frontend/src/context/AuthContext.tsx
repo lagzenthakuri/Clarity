@@ -1,4 +1,4 @@
-import { ReactNode, createContext, useContext, useMemo, useState } from "react";
+import { ReactNode, createContext, useCallback, useContext, useMemo, useState } from "react";
 import api from "../api";
 import { User } from "../types";
 
@@ -8,6 +8,7 @@ type AuthContextValue = {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
+  googleLogin: (idToken: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -28,7 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
   const [loading, setLoading] = useState(false);
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = useCallback(async (email: string, password: string): Promise<void> => {
     setLoading(true);
     try {
       const response = await api.post<AuthResponse>("/auth/login", { email, password });
@@ -39,9 +40,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const signup = async (name: string, email: string, password: string): Promise<void> => {
+  const signup = useCallback(async (name: string, email: string, password: string): Promise<void> => {
     setLoading(true);
     try {
       const response = await api.post<AuthResponse>("/auth/signup", {
@@ -56,18 +57,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const logout = (): void => {
+  const googleLogin = useCallback(async (idToken: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const response = await api.post<AuthResponse>("/auth/google", { idToken });
+      setToken(response.data.token);
+      setUser(response.data.user);
+      sessionStorage.setItem("clarity_token", response.data.token);
+      sessionStorage.setItem("clarity_user", JSON.stringify(response.data.user));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const logout = useCallback((): void => {
     setToken(null);
     setUser(null);
     sessionStorage.removeItem("clarity_token");
     sessionStorage.removeItem("clarity_user");
-  };
+  }, []);
 
   const value = useMemo(
-    () => ({ user, token, loading, login, signup, logout }),
-    [user, token, loading]
+    () => ({ user, token, loading, login, signup, googleLogin, logout }),
+    [user, token, loading, login, signup, googleLogin, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

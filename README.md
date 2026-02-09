@@ -11,7 +11,8 @@ Clarity is a personal expense tracking app with authentication, transaction CRUD
 
 ## Features
 
-- Sign up and login
+- Sign up and login (email/password)
+- Google OAuth login
 - Add income/expense transactions
 - Edit and delete transactions
 - List all transactions
@@ -48,6 +49,11 @@ Clarity is a personal expense tracking app with authentication, transaction CRUD
    - `MONGODB_URI`
    - `JWT_SECRET`
    - `CLIENT_URL`
+   - `GOOGLE_CLIENT_ID`
+   - `OPENROUTER_API_KEY`
+   - `OPENROUTER_MODEL` (optional)
+   - `OPENROUTER_SITE_URL` (optional)
+   - `OPENROUTER_APP_NAME` (optional)
 5. Run dev server:
    ```bash
    npm run dev
@@ -73,6 +79,8 @@ Backend default URL: `http://localhost:8001`
    ```bash
    npm run dev
    ```
+5. Add Google client id to `.env` for Google login:
+   - `VITE_GOOGLE_CLIENT_ID`
 
 Frontend default URL: `http://localhost:5173`
 
@@ -84,6 +92,7 @@ Base URL: `http://localhost:8001/api`
 
 - `POST /auth/signup`
 - `POST /auth/login`
+- `POST /auth/google`
 - `GET /auth/me` (protected)
 
 ### Transactions (protected)
@@ -95,6 +104,19 @@ Base URL: `http://localhost:8001/api`
 - `DELETE /transactions/:id`
 - `GET /transactions/dashboard`
   - Query params: `startDate`, `endDate`
+
+### Daily Presets (protected)
+
+- `GET /daily-presets`
+- `POST /daily-presets`
+- `PUT /daily-presets/:id`
+- `DELETE /daily-presets/:id`
+- `POST /daily-presets/:id/apply`
+
+### Insights (protected)
+
+- `POST /insights/daily-summary`
+  - Body: `date` (`YYYY-MM-DD`)
 
 ## Notes
 

@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
 import authRoutes from "./routes/auth";
+import dailyPresetRoutes from "./routes/dailyPresets";
+import insightsRoutes from "./routes/insights";
 import transactionRoutes from "./routes/transactions";
 
 dotenv.config();
@@ -25,6 +27,8 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/daily-presets", dailyPresetRoutes);
+app.use("/api/insights", insightsRoutes);
 
 app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   res.status(500).json({ message: error.message || "Something went wrong" });
