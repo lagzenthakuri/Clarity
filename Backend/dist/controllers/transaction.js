@@ -35,6 +35,20 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.dashboardSummary = exports.deleteTransaction = exports.updateTransaction = exports.listTransactions = exports.createTransaction = void 0;
 const transaction_1 = __importStar(require("../models/transaction"));
+const categoryKeywords = {
+    Food: ["zomato", "swiggy", "restaurant", "dining", "snack", "coffee", "food"],
+    Transportation: ["uber", "ola", "bus", "metro", "taxi", "fuel", "petrol", "train"],
+    Housing: ["rent", "landlord", "maintenance", "mortgage"],
+    Entertainment: ["movie", "netflix", "spotify", "concert", "game"],
+    Utilities: ["electricity", "water bill", "internet", "wifi", "gas bill", "phone bill"],
+    Healthcare: ["doctor", "clinic", "medicine", "pharmacy", "hospital"],
+    Shopping: ["amazon", "flipkart", "store", "mall", "shopping"],
+    Education: ["course", "tuition", "book", "college", "exam fee"],
+    Salary: ["salary", "payroll", "paycheck"],
+    Freelance: ["freelance", "client payment", "project fee"],
+    Investment: ["dividend", "interest", "mutual fund", "stocks", "sip"],
+    Other: [],
+};
 const parseDate = (value) => {
     if (!value)
         return undefined;
@@ -42,6 +56,42 @@ const parseDate = (value) => {
     if (Number.isNaN(date.getTime()))
         return undefined;
     return date;
+};
+const detectCategoryFromDescription = (description) => {
+    const normalized = description.toLowerCase();
+    for (const category of transaction_1.transactionCategories) {
+        for (const keyword of categoryKeywords[category]) {
+            if (normalized.includes(keyword)) {
+                return { category, keyword };
+            }
+        }
+    }
+    return null;
+};
+const decideCategoryAndReason = (args) => {
+    const { selectedCategory, description, type } = args;
+    const detected = detectCategoryFromDescription(description);
+    if (!detected) {
+        return { category: selectedCategory, reason: "Selected manually" };
+    }
+    if (selectedCategory === "Other") {
+        const allowedForType = type === "income"
+            ? new Set(["Salary", "Freelance", "Investment", "Other"])
+            : new Set(transaction_1.transactionCategories.filter((item) => item !== "Salary" && item !== "Freelance" && item !== "Investment"));
+        if (allowedForType.has(detected.category)) {
+            return {
+                category: detected.category,
+                reason: `Matched keyword "${detected.keyword}" in description`,
+            };
+        }
+    }
+    if (detected.category === selectedCategory) {
+        return {
+            category: selectedCategory,
+            reason: `Matched keyword "${detected.keyword}" in description`,
+        };
+    }
+    return { category: selectedCategory, reason: "Selected manually" };
 };
 const createTransaction = async (req, res) => {
     try {
@@ -63,13 +113,20 @@ const createTransaction = async (req, res) => {
             res.status(400).json({ message: "Invalid date" });
             return;
         }
+        const finalCategory = category;
+        const { category: resolvedCategory, reason } = decideCategoryAndReason({
+            selectedCategory: finalCategory,
+            description: description || "",
+            type,
+        });
         const transaction = await transaction_1.default.create({
             userId: req.userId,
             type,
             amount,
-            category,
+            category: resolvedCategory,
             date: parsedDate,
             description: description || "",
+            categorizationReason: reason,
         });
         res.status(201).json({ transaction });
     }
@@ -141,10 +198,20 @@ const updateTransaction = async (req, res) => {
             existing.type = nextValues.type;
         if (nextValues.amount)
             existing.amount = nextValues.amount;
-        if (nextValues.category)
-            existing.category = nextValues.category;
         if (typeof nextValues.description === "string")
             existing.description = nextValues.description;
+        if (nextValues.category || typeof nextValues.description === "string" || nextValues.type) {
+            const selectedCategory = (nextValues.category
+                ? nextValues.category
+                : existing.category);
+            const { category: resolvedCategory, reason } = decideCategoryAndReason({
+                selectedCategory,
+                description: existing.description || "",
+                type: existing.type,
+            });
+            existing.category = resolvedCategory;
+            existing.categorizationReason = reason;
+        }
         await existing.save();
         res.status(200).json({ transaction: existing });
     }

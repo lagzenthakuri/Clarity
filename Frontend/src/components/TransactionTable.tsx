@@ -39,7 +39,14 @@ const TransactionTable = ({ transactions, onEdit, onDelete }: TransactionTablePr
                       {transaction.type}
                     </span>
                   </td>
-                  <td>{transaction.category}</td>
+                  <td>
+                    <button
+                      className="ghost category-reason"
+                      title={transaction.categorizationReason || "Selected manually"}
+                    >
+                      {transaction.category}
+                    </button>
+                  </td>
                   <td>{transaction.description || "-"}</td>
                   <td>{currency.format(transaction.amount)}</td>
                   <td>

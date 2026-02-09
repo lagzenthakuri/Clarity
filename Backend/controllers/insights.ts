@@ -13,6 +13,13 @@ type AdviceResponse = {
   source: "ai" | "fallback";
 };
 
+type MonthPoint = {
+  month: string;
+  income: number;
+  expense: number;
+  byCategory: Record<string, number>;
+};
+
 const asDayRange = (dateString: string): { start: Date; end: Date } | null => {
   const start = new Date(`${dateString}T00:00:00.000Z`);
   if (Number.isNaN(start.getTime())) return null;
@@ -42,6 +49,76 @@ const toStringList = (value: unknown): string[] => {
     .map((item) => item.trim())
     .filter(Boolean)
     .slice(0, 4);
+};
+
+const monthKeyUtc = (date: Date): string => {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+};
+
+const monthShortLabel = (key: string): string => {
+  const [year, month] = key.split("-").map(Number);
+  if (!year || !month) return key;
+  return new Date(Date.UTC(year, month - 1, 1)).toLocaleString("en-US", {
+    month: "short",
+    timeZone: "UTC",
+  });
+};
+
+const getMonthStarts = (count: number): Date[] => {
+  const now = new Date();
+  const starts: Date[] = [];
+  for (let offset = count - 1; offset >= 0; offset -= 1) {
+    starts.push(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - offset, 1)));
+  }
+  return starts;
+};
+
+const asDateOnlyUtc = (date: Date): string => date.toISOString().slice(0, 10);
+
+const getCurrentMonthMeta = () => {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  const daysElapsed = now.getUTCDate();
+  return { start, end, daysElapsed };
+};
+
+const buildExplainSummary = (current: MonthPoint, previous: MonthPoint): string => {
+  const currentTop = Object.entries(current.byCategory).sort((a, b) => b[1] - a[1])[0];
+  const previousTop = Object.entries(previous.byCategory).sort((a, b) => b[1] - a[1])[0];
+
+  if (!currentTop && !previousTop) {
+    return "You have no expense activity in the current and previous month yet.";
+  }
+
+  const category = currentTop?.[0] || previousTop?.[0] || "Other";
+  const currentValue = current.byCategory[category] || 0;
+  const previousValue = previous.byCategory[category] || 0;
+  const diff = currentValue - previousValue;
+  const pct =
+    previousValue > 0
+      ? Math.round((Math.abs(diff) / previousValue) * 100)
+      : currentValue > 0
+        ? 100
+        : 0;
+  const direction = diff >= 0 ? "more" : "less";
+
+  const sentenceOne =
+    previousValue === 0
+      ? `You started spending in ${category} this month with ${currentValue.toFixed(2)}.`
+      : `You spent ${pct}% ${direction} on ${category} this month compared to last month.`;
+  const sentenceTwo =
+    current.expense > previous.expense
+      ? `Overall expenses increased from ${previous.expense.toFixed(2)} to ${current.expense.toFixed(2)}.`
+      : `Overall expenses improved from ${previous.expense.toFixed(2)} to ${current.expense.toFixed(2)}.`;
+  const sentenceThree =
+    current.income - current.expense >= 0
+      ? "You are currently operating with a positive monthly balance."
+      : "Current month balance is negative, so cost control should be the immediate priority.";
+
+  return `${sentenceOne} ${sentenceTwo} ${sentenceThree}`;
 };
 
 const fallbackAdvice = (args: {
@@ -193,6 +270,112 @@ export const dailySummaryAdvice = async (req: AuthRequest, res: Response): Promi
     };
 
     res.status(200).json({ advice });
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};
+
+export const dashboardIntelligence = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const monthStarts = getMonthStarts(6);
+    const firstStart = monthStarts[0];
+    const endBoundary = new Date(monthStarts[monthStarts.length - 1]);
+    endBoundary.setUTCMonth(endBoundary.getUTCMonth() + 1);
+
+    const transactions = await Transaction.find({
+      userId: req.userId,
+      date: { $gte: firstStart, $lt: endBoundary },
+    }).select("type amount category date description");
+
+    const monthMap = new Map<string, MonthPoint>();
+    for (const start of monthStarts) {
+      const key = monthKeyUtc(start);
+      monthMap.set(key, { month: key, income: 0, expense: 0, byCategory: {} });
+    }
+
+    for (const item of transactions) {
+      const key = monthKeyUtc(new Date(item.date));
+      const bucket = monthMap.get(key);
+      if (!bucket) continue;
+
+      if (item.type === "income") {
+        bucket.income += item.amount;
+      } else {
+        bucket.expense += item.amount;
+        bucket.byCategory[item.category] = (bucket.byCategory[item.category] || 0) + item.amount;
+      }
+    }
+
+    const monthSeries = monthStarts.map((start) => monthMap.get(monthKeyUtc(start)) as MonthPoint);
+    const currentMonth = monthSeries[monthSeries.length - 1];
+    const previousMonth = monthSeries[monthSeries.length - 2];
+
+    const explainSummary = buildExplainSummary(currentMonth, previousMonth);
+
+    const currentMonthMeta = getCurrentMonthMeta();
+    const currentMonthTransactions = transactions.filter((item) => {
+      const itemDate = new Date(item.date);
+      return itemDate >= currentMonthMeta.start && itemDate < currentMonthMeta.end;
+    });
+    const loggedDays = new Set(currentMonthTransactions.map((item) => asDateOnlyUtc(new Date(item.date))));
+    const loggingRate = currentMonthMeta.daysElapsed
+      ? loggedDays.size / currentMonthMeta.daysElapsed
+      : 0;
+    const descriptionRate =
+      currentMonthTransactions.length > 0
+        ? currentMonthTransactions.filter((item) => Boolean((item.description || "").trim())).length /
+          currentMonthTransactions.length
+        : 0;
+    const currentExpenseTotal = currentMonth.expense;
+    const otherExpense = currentMonth.byCategory.Other || 0;
+    const categorizationQuality =
+      currentExpenseTotal > 0 ? Math.max(0, 1 - otherExpense / currentExpenseTotal) : 1;
+
+    const confidenceScore = Math.round(
+      (loggingRate * 0.5 + descriptionRate * 0.3 + categorizationQuality * 0.2) * 100
+    );
+    const confidenceNotes = [
+      `${loggedDays.size}/${currentMonthMeta.daysElapsed} days logged this month`,
+      `${Math.round(descriptionRate * 100)}% transactions have descriptions`,
+      `${Math.round(categorizationQuality * 100)}% categorization quality`,
+    ];
+
+    const categories = new Set<string>();
+    monthSeries.forEach((month) => Object.keys(month.byCategory).forEach((category) => categories.add(category)));
+
+    const trailing3 = monthSeries.slice(-4, -1);
+    const categoryHealth = Array.from(categories)
+      .map((category) => {
+        const trailingAvg =
+          trailing3.reduce((sum, month) => sum + (month.byCategory[category] || 0), 0) /
+          Math.max(trailing3.length, 1);
+        const current = currentMonth.byCategory[category] || 0;
+        const ratio = trailingAvg > 0 ? current / trailingAvg : current > 0 ? 2 : 1;
+        const status = ratio > 1.4 ? "red" : ratio > 1.1 ? "yellow" : "green";
+        return { category, current, trailingAvg, status };
+      })
+      .filter((item) => item.current > 0 || item.trailingAvg > 0)
+      .sort((a, b) => b.current - a.current)
+      .slice(0, 6);
+
+    res.status(200).json({
+      intelligence: {
+        explainSummary,
+        confidenceScore,
+        confidenceNotes,
+        monthlyTrend: monthSeries.map((month) => ({
+          month: monthShortLabel(month.month),
+          income: month.income,
+          expense: month.expense,
+        })),
+        categoryHealth,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
   }

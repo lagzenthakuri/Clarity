@@ -50,6 +50,11 @@ const transactionSchema = new mongoose_1.default.Schema({
         default: "",
         trim: true,
     },
+    categorizationReason: {
+        type: String,
+        default: "Selected manually",
+        trim: true,
+    },
 }, { timestamps: true });
 const Transaction = mongoose_1.default.model("Transaction", transactionSchema);
 exports.default = Transaction;

@@ -3,12 +3,81 @@ import { AuthRequest } from "../middlewares/auth";
 import Transaction, { transactionCategories } from "../models/transaction";
 
 type TransactionCategory = (typeof transactionCategories)[number];
+type TransactionType = "income" | "expense";
+
+const categoryKeywords: Record<TransactionCategory, string[]> = {
+  Food: ["zomato", "swiggy", "restaurant", "dining", "snack", "coffee", "food"],
+  Transportation: ["uber", "ola", "bus", "metro", "taxi", "fuel", "petrol", "train"],
+  Housing: ["rent", "landlord", "maintenance", "mortgage"],
+  Entertainment: ["movie", "netflix", "spotify", "concert", "game"],
+  Utilities: ["electricity", "water bill", "internet", "wifi", "gas bill", "phone bill"],
+  Healthcare: ["doctor", "clinic", "medicine", "pharmacy", "hospital"],
+  Shopping: ["amazon", "flipkart", "store", "mall", "shopping"],
+  Education: ["course", "tuition", "book", "college", "exam fee"],
+  Salary: ["salary", "payroll", "paycheck"],
+  Freelance: ["freelance", "client payment", "project fee"],
+  Investment: ["dividend", "interest", "mutual fund", "stocks", "sip"],
+  Other: [],
+};
 
 const parseDate = (value?: string): Date | undefined => {
   if (!value) return undefined;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return undefined;
   return date;
+};
+
+const detectCategoryFromDescription = (description: string): {
+  category: TransactionCategory;
+  keyword: string;
+} | null => {
+  const normalized = description.toLowerCase();
+
+  for (const category of transactionCategories) {
+    for (const keyword of categoryKeywords[category]) {
+      if (normalized.includes(keyword)) {
+        return { category, keyword };
+      }
+    }
+  }
+
+  return null;
+};
+
+const decideCategoryAndReason = (args: {
+  selectedCategory: TransactionCategory;
+  description: string;
+  type: TransactionType;
+}): { category: TransactionCategory; reason: string } => {
+  const { selectedCategory, description, type } = args;
+  const detected = detectCategoryFromDescription(description);
+
+  if (!detected) {
+    return { category: selectedCategory, reason: "Selected manually" };
+  }
+
+  if (selectedCategory === "Other") {
+    const allowedForType =
+      type === "income"
+        ? new Set<TransactionCategory>(["Salary", "Freelance", "Investment", "Other"])
+        : new Set<TransactionCategory>(transactionCategories.filter((item) => item !== "Salary" && item !== "Freelance" && item !== "Investment"));
+
+    if (allowedForType.has(detected.category)) {
+      return {
+        category: detected.category,
+        reason: `Matched keyword "${detected.keyword}" in description`,
+      };
+    }
+  }
+
+  if (detected.category === selectedCategory) {
+    return {
+      category: selectedCategory,
+      reason: `Matched keyword "${detected.keyword}" in description`,
+    };
+  }
+
+  return { category: selectedCategory, reason: "Selected manually" };
 };
 
 export const createTransaction = async (
@@ -45,13 +114,21 @@ export const createTransaction = async (
       return;
     }
 
+    const finalCategory = category as TransactionCategory;
+    const { category: resolvedCategory, reason } = decideCategoryAndReason({
+      selectedCategory: finalCategory,
+      description: description || "",
+      type,
+    });
+
     const transaction = await Transaction.create({
       userId: req.userId,
       type,
       amount,
-      category,
+      category: resolvedCategory,
       date: parsedDate,
       description: description || "",
+      categorizationReason: reason,
     });
 
     res.status(201).json({ transaction });
@@ -148,8 +225,20 @@ export const updateTransaction = async (
 
     if (nextValues.type) existing.type = nextValues.type;
     if (nextValues.amount) existing.amount = nextValues.amount;
-    if (nextValues.category) existing.category = nextValues.category as TransactionCategory;
     if (typeof nextValues.description === "string") existing.description = nextValues.description;
+
+    if (nextValues.category || typeof nextValues.description === "string" || nextValues.type) {
+      const selectedCategory = (nextValues.category
+        ? nextValues.category
+        : existing.category) as TransactionCategory;
+      const { category: resolvedCategory, reason } = decideCategoryAndReason({
+        selectedCategory,
+        description: existing.description || "",
+        type: existing.type as TransactionType,
+      });
+      existing.category = resolvedCategory;
+      existing.categorizationReason = reason;
+    }
 
     await existing.save();
     res.status(200).json({ transaction: existing });

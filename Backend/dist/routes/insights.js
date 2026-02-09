@@ -5,5 +5,6 @@ const insights_1 = require("../controllers/insights");
 const auth_1 = require("../middlewares/auth");
 const router = (0, express_1.Router)();
 router.use(auth_1.authMiddleware);
+router.get("/dashboard-intelligence", insights_1.dashboardIntelligence);
 router.post("/daily-summary", insights_1.dailySummaryAdvice);
 exports.default = router;

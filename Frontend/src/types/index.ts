@@ -14,6 +14,7 @@ export type Transaction = {
   category: string;
   date: string;
   description: string;
+  categorizationReason?: string;
 };
 
 export type DashboardSummary = {
@@ -42,6 +43,27 @@ export type DailyMoneyAdvice = {
   doList: string[];
   avoidList: string[];
   source: "ai" | "fallback";
+};
+
+export type MonthlyTrendPoint = {
+  month: string;
+  income: number;
+  expense: number;
+};
+
+export type CategoryHealthItem = {
+  category: string;
+  current: number;
+  trailingAvg: number;
+  status: "green" | "yellow" | "red";
+};
+
+export type DashboardIntelligence = {
+  explainSummary: string;
+  confidenceScore: number;
+  confidenceNotes: string[];
+  monthlyTrend: MonthlyTrendPoint[];
+  categoryHealth: CategoryHealthItem[];
 };
 
 export type TransactionFilters = {

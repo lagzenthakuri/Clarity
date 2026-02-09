@@ -117,6 +117,7 @@ Base URL: `http://localhost:8001/api`
 
 - `POST /insights/daily-summary`
   - Body: `date` (`YYYY-MM-DD`)
+- `GET /insights/dashboard-intelligence`
 
 ## Notes
 

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../api";
 import DailyPresetManager from "../components/DailyPresetManager";
+import MonthlyWidgets from "../components/MonthlyWidgets";
+import SpendingIntelligence from "../components/SpendingIntelligence";
 import SummaryCards from "../components/SummaryCards";
 import TransactionFiltersPanel from "../components/TransactionFilters";
 import TransactionForm from "../components/TransactionForm";
@@ -9,6 +11,7 @@ import { useAuth } from "../context/AuthContext";
 import {
   DailyMoneyAdvice,
   DailyPreset,
+  DashboardIntelligence,
   DashboardSummary,
   Transaction,
   TransactionFilters,
@@ -28,6 +31,23 @@ const defaultFilters: TransactionFilters = {
   endDate: "",
 };
 const today = new Date().toISOString().slice(0, 10);
+const msInDay = 24 * 60 * 60 * 1000;
+
+type PendingDelete = {
+  id: string;
+  transaction: Transaction;
+  timeoutId: number;
+};
+
+const getMonthDateRange = (): { startDate: string; endDate: string } => {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+  return {
+    startDate: start.toISOString().slice(0, 10),
+    endDate: end.toISOString().slice(0, 10),
+  };
+};
 
 const DashboardPage = () => {
   const { user, logout } = useAuth();
@@ -38,12 +58,15 @@ const DashboardPage = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [presets, setPresets] = useState<DailyPreset[]>([]);
   const [summary, setSummary] = useState<DashboardSummary>(defaultSummary);
+  const [monthlySummary, setMonthlySummary] = useState<DashboardSummary>(defaultSummary);
+  const [intelligence, setIntelligence] = useState<DashboardIntelligence | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(false);
   const [aiDate, setAiDate] = useState<string>(today);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
   const [aiAdvice, setAiAdvice] = useState<DailyMoneyAdvice | null>(null);
+  const [pendingDeletes, setPendingDeletes] = useState<PendingDelete[]>([]);
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
@@ -57,15 +80,29 @@ const DashboardPage = () => {
   const loadData = async (): Promise<void> => {
     setLoading(true);
     try {
-      const [transactionsResponse, summaryResponse, presetsResponse] = await Promise.all([
-        api.get<{ transactions: Transaction[] }>(`/transactions?${query}`),
-        api.get<{ summary: DashboardSummary }>(`/transactions/dashboard?${query}`),
-        api.get<{ presets: DailyPreset[] }>("/daily-presets"),
-      ]);
+      const { startDate, endDate } = getMonthDateRange();
+      const monthQuery = new URLSearchParams({ startDate, endDate }).toString();
+
+      const [
+        transactionsResponse,
+        summaryResponse,
+        presetsResponse,
+        monthlySummaryResponse,
+        intelligenceResponse,
+      ] =
+        await Promise.all([
+          api.get<{ transactions: Transaction[] }>(`/transactions?${query}`),
+          api.get<{ summary: DashboardSummary }>(`/transactions/dashboard?${query}`),
+          api.get<{ presets: DailyPreset[] }>("/daily-presets"),
+          api.get<{ summary: DashboardSummary }>(`/transactions/dashboard?${monthQuery}`),
+          api.get<{ intelligence: DashboardIntelligence }>("/insights/dashboard-intelligence"),
+        ]);
 
       setTransactions(transactionsResponse.data.transactions);
       setSummary(summaryResponse.data.summary);
       setPresets(presetsResponse.data.presets);
+      setMonthlySummary(monthlySummaryResponse.data.summary);
+      setIntelligence(intelligenceResponse.data.intelligence);
       sessionStorage.setItem("clarity_filters", JSON.stringify(filters));
     } finally {
       setLoading(false);
@@ -94,8 +131,34 @@ const DashboardPage = () => {
   };
 
   const handleDelete = async (id: string): Promise<void> => {
-    await api.delete(`/transactions/${id}`);
-    await loadData();
+    const transaction = transactions.find((item) => item._id === id);
+    if (!transaction) return;
+
+    setTransactions((prev) => prev.filter((item) => item._id !== id));
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        await api.delete(`/transactions/${id}`);
+      } finally {
+        setPendingDeletes((prev) => prev.filter((item) => item.id !== id));
+        await loadData();
+      }
+    }, 10_000);
+
+    setPendingDeletes((prev) => [...prev, { id, transaction, timeoutId }]);
+  };
+
+  const undoDelete = (id: string): void => {
+    const pending = pendingDeletes.find((item) => item.id === id);
+    if (!pending) return;
+
+    window.clearTimeout(pending.timeoutId);
+    setPendingDeletes((prev) => prev.filter((item) => item.id !== id));
+    setTransactions((prev) =>
+      [...prev, pending.transaction].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      )
+    );
   };
 
   const handleCreatePreset = async (payload: {
@@ -151,6 +214,22 @@ const DashboardPage = () => {
     }
   };
 
+  const spendingVelocity = useMemo(() => {
+    const totalExpense = transactions
+      .filter((item) => item.type === "expense")
+      .reduce((sum, item) => sum + item.amount, 0);
+
+    const dates = transactions.map((item) => new Date(item.date).getTime()).filter(Boolean);
+    let dayWindow = 1;
+    if (dates.length > 0) {
+      const minDate = Math.min(...dates);
+      const maxDate = Math.max(...dates);
+      dayWindow = Math.max(1, Math.floor((maxDate - minDate) / msInDay) + 1);
+    }
+
+    return { value: totalExpense / dayWindow, days: dayWindow };
+  }, [transactions]);
+
   return (
     <main className="layout">
       <header className="topbar card">
@@ -162,6 +241,8 @@ const DashboardPage = () => {
           Logout
         </button>
       </header>
+
+      <MonthlyWidgets summary={monthlySummary} />
 
       <section className="grid grid-2">
         <SummaryCards summary={summary} />
@@ -178,6 +259,12 @@ const DashboardPage = () => {
         onUpdate={handleUpdatePreset}
         onDelete={handleDeletePreset}
         onApply={handleApplyPreset}
+      />
+
+      <SpendingIntelligence
+        intelligence={intelligence}
+        spendingVelocity={spendingVelocity.value}
+        velocityDays={spendingVelocity.days}
       />
 
       <section className="card form-grid">
@@ -252,6 +339,19 @@ const DashboardPage = () => {
           onEdit={(transaction) => setEditingTransaction(transaction)}
           onDelete={handleDelete}
         />
+      )}
+
+      {pendingDeletes.length > 0 && (
+        <section className="undo-stack">
+          {pendingDeletes.map((item) => (
+            <div key={item.id} className="undo-toast">
+              <span>Transaction deleted.</span>
+              <button className="ghost" onClick={() => undoDelete(item.id)}>
+                Undo
+              </button>
+            </div>
+          ))}
+        </section>
       )}
     </main>
   );

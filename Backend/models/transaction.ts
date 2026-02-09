@@ -47,6 +47,11 @@ const transactionSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    categorizationReason: {
+      type: String,
+      default: "Selected manually",
+      trim: true,
+    },
   },
   { timestamps: true }
 );
