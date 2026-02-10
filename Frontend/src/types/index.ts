@@ -72,3 +72,15 @@ export type TransactionFilters = {
   startDate: string;
   endDate: string;
 };
+
+export type BudgetPeriod = "now" | "week" | "month";
+
+export type BudgetStatus = {
+  amount: number;
+  period: BudgetPeriod;
+  startDate: string;
+  endDate: string;
+  spent: number;
+  remaining: number;
+  utilizationPct: number;
+};

@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
 import authRoutes from "./routes/auth";
+import budgetRoutes from "./routes/budgets";
 import dailyPresetRoutes from "./routes/dailyPresets";
 import insightsRoutes from "./routes/insights";
 import transactionRoutes from "./routes/transactions";
@@ -27,6 +28,7 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/budgets", budgetRoutes);
 app.use("/api/daily-presets", dailyPresetRoutes);
 app.use("/api/insights", insightsRoutes);
 

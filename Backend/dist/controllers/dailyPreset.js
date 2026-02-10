@@ -197,7 +197,7 @@ const applyDailyPreset = async (req, res) => {
             amount: preset.amount,
             category: preset.category,
             date: parsedDate,
-            description: preset.description,
+            description: preset.name,
         });
         res.status(201).json({ transaction });
     }

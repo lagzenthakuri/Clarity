@@ -8,6 +8,7 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const express_1 = __importDefault(require("express"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const auth_1 = __importDefault(require("./routes/auth"));
+const budgets_1 = __importDefault(require("./routes/budgets"));
 const dailyPresets_1 = __importDefault(require("./routes/dailyPresets"));
 const insights_1 = __importDefault(require("./routes/insights"));
 const transactions_1 = __importDefault(require("./routes/transactions"));
@@ -25,6 +26,7 @@ app.get("/api/health", (_req, res) => {
 });
 app.use("/api/auth", auth_1.default);
 app.use("/api/transactions", transactions_1.default);
+app.use("/api/budgets", budgets_1.default);
 app.use("/api/daily-presets", dailyPresets_1.default);
 app.use("/api/insights", insights_1.default);
 app.use((error, _req, res, _next) => {
