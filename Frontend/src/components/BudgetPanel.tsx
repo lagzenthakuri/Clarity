@@ -7,10 +7,12 @@ type BudgetPanelProps = {
   onClear: () => Promise<void>;
 };
 
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
+const currency = new Intl.NumberFormat("en-NP", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 });
+
+const formatCurrency = (value: number): string => `Nrs ${currency.format(value)}`;
 
 const periodLabel: Record<BudgetPeriod, string> = {
   now: "For Now",
@@ -106,16 +108,16 @@ const BudgetPanel = ({ budget, onSave, onClear }: BudgetPanelProps) => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="p-3 rounded-xl bg-dark-900/35 border border-dark-200/10">
               <p className="text-[10px] font-bold uppercase tracking-widest text-dark-200">Budget</p>
-              <p className="text-base font-bold text-secondary">{currency.format(budget.amount)}</p>
+              <p className="text-base font-bold text-secondary">{formatCurrency(budget.amount)}</p>
             </div>
             <div className="p-3 rounded-xl bg-dark-900/35 border border-dark-200/10">
               <p className="text-[10px] font-bold uppercase tracking-widest text-dark-200">Spent</p>
-              <p className="text-base font-bold text-rose-400">{currency.format(budget.spent)}</p>
+              <p className="text-base font-bold text-rose-400">{formatCurrency(budget.spent)}</p>
             </div>
             <div className="p-3 rounded-xl bg-dark-900/35 border border-dark-200/10">
               <p className="text-[10px] font-bold uppercase tracking-widest text-dark-200">Remaining</p>
               <p className={`text-base font-bold ${budget.remaining < 0 ? "text-danger" : "text-primary"}`}>
-                {currency.format(budget.remaining)}
+                {formatCurrency(budget.remaining)}
               </p>
             </div>
           </div>

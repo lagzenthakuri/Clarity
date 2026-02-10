@@ -152,6 +152,24 @@
     background-color: rgba(10, 18, 30, 0.9);
   }
 
+  [data-theme="light"] .input-field {
+    color: #0f1c33;
+    border-color: rgba(63, 128, 234, 0.26);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0)),
+      rgba(255, 255, 255, 0.92);
+  }
+
+  [data-theme="light"] .input-field::placeholder {
+    color: rgba(15, 28, 51, 0.5);
+  }
+
+  [data-theme="light"] .input-field:focus {
+    border-color: rgba(63, 128, 234, 0.5);
+    box-shadow: 0 0 0 4px rgba(63, 128, 234, 0.14);
+    background: #ffffff;
+  }
+
   .dashboard-grid {
     @apply grid gap-4 sm:gap-6;
   }

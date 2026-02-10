@@ -5,10 +5,12 @@ type SummaryCardsProps = {
   summary: DashboardSummary;
 };
 
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
+const currency = new Intl.NumberFormat("en-NP", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 });
+
+const formatCurrency = (value: number): string => `Nrs ${currency.format(value)}`;
 
 const SummaryCards = ({ summary }: SummaryCardsProps) => {
   const sortedCategories = Object.entries(summary.byCategory).sort((a, b) => b[1] - a[1]);
@@ -43,7 +45,7 @@ const SummaryCards = ({ summary }: SummaryCardsProps) => {
           >
             <p className="text-[10px] text-dark-200 uppercase tracking-widest mb-1 font-bold">{item.label}</p>
             <strong className={`text-base font-bold ${item.color}`}>
-              {currency.format(item.value)}
+              {formatCurrency(item.value)}
             </strong>
           </motion.div>
         ))}
@@ -68,7 +70,7 @@ const SummaryCards = ({ summary }: SummaryCardsProps) => {
                   <div className="flex justify-between items-end mb-1">
                     <span className="text-xs font-semibold text-dark-100 capitalize">{category}</span>
                     <span className="text-xs font-bold text-dark-200 group-hover:text-primary transition-colors">
-                      {currency.format(value)}
+                      {formatCurrency(value)}
                     </span>
                   </div>
                   <div className="h-1.5 w-full bg-dark-900 rounded-full overflow-hidden">
@@ -92,4 +94,3 @@ const SummaryCards = ({ summary }: SummaryCardsProps) => {
 };
 
 export default SummaryCards;
-

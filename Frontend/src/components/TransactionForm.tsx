@@ -96,9 +96,11 @@ const TransactionForm = ({
       <div className="flex flex-col gap-1.5">
         <label className="text-[10px] font-bold text-dark-200 uppercase tracking-widest ml-1">Amount</label>
         <div className="relative group">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-200/50 font-sans text-xl font-light">$</span>
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-200/60 font-sans text-[10px] font-semibold uppercase tracking-wide">
+            Nrs
+          </span>
           <input
-            className="w-full bg-dark-900 border-2 border-primary/50 text-white text-xl font-bold py-3 pl-9 pr-4 rounded-xl outline-none focus:border-primary focus:shadow-[0_0_20px_rgba(34,197,94,0.1)] transition-all placeholder:text-dark-200/20"
+            className="w-full bg-dark-900 border-2 border-primary/50 text-white text-xl font-bold py-3 pl-14 pr-4 rounded-xl outline-none focus:border-primary focus:shadow-[0_0_20px_rgba(34,197,94,0.1)] transition-all placeholder:text-dark-200/20"
             type="number"
             step="0.01"
             min="0"
@@ -183,4 +185,3 @@ const TransactionForm = ({
 };
 
 export default TransactionForm;
-

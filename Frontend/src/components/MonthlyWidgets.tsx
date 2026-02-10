@@ -4,10 +4,12 @@ type MonthlyWidgetsProps = {
   summary: DashboardSummary;
 };
 
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
+const currency = new Intl.NumberFormat("en-NP", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 });
+
+const formatCurrency = (value: number): string => `Nrs ${currency.format(value)}`;
 
 const MonthlyWidgets = ({ summary }: MonthlyWidgetsProps) => {
   const topCategories = Object.entries(summary.byCategory).sort((a, b) => b[1] - a[1]).slice(0, 3);
@@ -30,17 +32,17 @@ const MonthlyWidgets = ({ summary }: MonthlyWidgetsProps) => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="p-4 rounded-xl bg-dark-900/40 border border-dark-200/10 relative overflow-hidden group hover:border-primary/30 transition-colors">
           <p className="text-[10px] text-dark-200 uppercase tracking-widest mb-1 font-bold">Income</p>
-          <strong className="text-xl font-bold text-primary tracking-tight">{currency.format(summary.totalIncome)}</strong>
+          <strong className="text-xl font-bold text-primary tracking-tight">{formatCurrency(summary.totalIncome)}</strong>
         </div>
 
         <div className="p-4 rounded-xl bg-dark-900/40 border border-dark-200/10 relative overflow-hidden group hover:border-rose-500/30 transition-colors">
           <p className="text-[10px] text-dark-200 uppercase tracking-widest mb-1 font-bold">Expenses</p>
-          <strong className="text-xl font-bold text-rose-400 tracking-tight">{currency.format(summary.totalExpense)}</strong>
+          <strong className="text-xl font-bold text-rose-400 tracking-tight">{formatCurrency(summary.totalExpense)}</strong>
         </div>
 
         <div className="p-4 rounded-xl bg-dark-900/40 border border-dark-200/10 relative overflow-hidden group hover:border-secondary/30 transition-colors">
           <p className="text-[10px] text-dark-200 uppercase tracking-widest mb-1 font-bold">Net Balance</p>
-          <strong className="text-xl font-bold text-secondary tracking-tight">{currency.format(summary.balance)}</strong>
+          <strong className="text-xl font-bold text-secondary tracking-tight">{formatCurrency(summary.balance)}</strong>
         </div>
       </div>
 
@@ -53,7 +55,7 @@ const MonthlyWidgets = ({ summary }: MonthlyWidgetsProps) => {
             {topCategories.map(([category, amount]) => (
               <div key={category} className="flex flex-col p-2.5 rounded-lg bg-dark-900/30 border border-dark-200/5 group hover:border-dark-200/20 transition-all">
                 <span className="text-[10px] text-dark-200 uppercase font-medium tracking-wide mb-0.5">{category}</span>
-                <span className="text-sm font-bold text-dark-100 group-hover:text-primary transition-colors">{currency.format(amount)}</span>
+                <span className="text-sm font-bold text-dark-100 group-hover:text-primary transition-colors">{formatCurrency(amount)}</span>
               </div>
             ))}
           </div>

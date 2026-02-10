@@ -7,10 +7,12 @@ type SpendingIntelligenceProps = {
   velocityDays: number;
 };
 
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
+const currency = new Intl.NumberFormat("en-NP", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 });
+
+const formatCurrency = (value: number): string => `Nrs ${currency.format(value)}`;
 
 const SpendingIntelligence = ({
   intelligence,
@@ -66,7 +68,7 @@ const SpendingIntelligence = ({
         <div className="p-3.5 rounded-xl bg-dark-900/40 border border-dark-200/5 flex flex-col justify-between group hover:border-rose-500/20 transition-all">
           <div className="space-y-0.5">
             <p className="text-[10px] text-dark-200 uppercase tracking-[0.15em] font-bold">Daily Burn</p>
-            <strong className="text-xl font-bold text-rose-400">{currency.format(spendingVelocity)}</strong>
+            <strong className="text-xl font-bold text-rose-400">{formatCurrency(spendingVelocity)}</strong>
           </div>
           <p className="text-[9px] text-dark-200/50 italic mt-2">Historical {velocityDays}d avg</p>
         </div>
@@ -94,13 +96,13 @@ const SpendingIntelligence = ({
                     initial={{ height: 0 }}
                     animate={{ height: `${(item.income / maxValue) * 100}%` }}
                     className="w-full max-w-[8px] bg-primary/70 rounded-t-[1px] group-hover:bg-primary transition-colors"
-                    title={`Income ${currency.format(item.income)}`}
+                    title={`Income ${formatCurrency(item.income)}`}
                   />
                   <motion.div
                     initial={{ height: 0 }}
                     animate={{ height: `${(item.expense / maxValue) * 100}%` }}
                     className="w-full max-w-[8px] bg-rose-500/70 rounded-t-[1px] group-hover:bg-rose-400 transition-colors"
-                    title={`Expense ${currency.format(item.expense)}`}
+                    title={`Expense ${formatCurrency(item.expense)}`}
                   />
                 </div>
                 <span className="text-[9px] text-dark-200 font-bold uppercase tracking-tighter truncate w-full text-center">
@@ -137,4 +139,3 @@ const SpendingIntelligence = ({
 };
 
 export default SpendingIntelligence;
-

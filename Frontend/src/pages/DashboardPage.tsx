@@ -519,15 +519,15 @@ const DashboardPage = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 border-b border-dark-200/10 pb-4">
                 <div className="space-y-0.5">
                   <p className="text-[10px] text-dark-200 uppercase tracking-widest font-bold">Planned Income</p>
-                  <p className="text-base font-bold text-primary">${aiAdvice.income.toFixed(2)}</p>
+                  <p className="text-base font-bold text-primary">Nrs {aiAdvice.income.toFixed(2)}</p>
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-[10px] text-dark-200 uppercase tracking-widest font-bold">Projected Loss</p>
-                  <p className="text-base font-bold text-rose-400">${aiAdvice.expense.toFixed(2)}</p>
+                  <p className="text-base font-bold text-rose-400">Nrs {aiAdvice.expense.toFixed(2)}</p>
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-[10px] text-dark-200 uppercase tracking-widest font-bold">Net Standing</p>
-                  <p className="text-base font-bold text-secondary">${aiAdvice.balance.toFixed(2)}</p>
+                  <p className="text-base font-bold text-secondary">Nrs {aiAdvice.balance.toFixed(2)}</p>
                 </div>
               </div>
 

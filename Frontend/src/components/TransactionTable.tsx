@@ -7,10 +7,12 @@ type TransactionTableProps = {
   onDelete: (id: string) => Promise<void>;
 };
 
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
+const currency = new Intl.NumberFormat("en-NP", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
 });
+
+const formatCurrency = (value: number): string => `Nrs ${currency.format(value)}`;
 
 const TransactionTable = ({ transactions, onEdit, onDelete }: TransactionTableProps) => {
   return (
@@ -92,7 +94,7 @@ const TransactionTable = ({ transactions, onEdit, onDelete }: TransactionTablePr
                     </td>
                     <td className={`px-5 py-3 text-xs font-bold text-right whitespace-nowrap ${transaction.type === 'expense' ? 'text-rose-400' : 'text-primary'
                       }`}>
-                      {transaction.type === 'expense' ? '-' : '+'}{currency.format(transaction.amount)}
+                      {transaction.type === 'expense' ? '-' : '+'}{formatCurrency(transaction.amount)}
                     </td>
                     <td className="px-5 py-3 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all transform translate-x-1 group-hover:translate-x-0">
@@ -126,4 +128,3 @@ const TransactionTable = ({ transactions, onEdit, onDelete }: TransactionTablePr
 };
 
 export default TransactionTable;
-
