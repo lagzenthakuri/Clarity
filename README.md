@@ -83,10 +83,12 @@ Backend default URL: `http://localhost:8001`
    - `VITE_GOOGLE_CLIENT_ID`
 
 Frontend default URL: `http://localhost:5173`
+Frontend default URL: `https://clarity-amber-eight.vercel.app/`
 
 ## API Endpoints
 
 Base URL: `http://localhost:8001/api`
+Base URL: `https://clarity-zhbo.onrender.com`
 
 ### Auth
 
