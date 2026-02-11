@@ -16,7 +16,7 @@ const mongoUri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/clarity";
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: [process.env.CLIENT_URL || "http://localhost:5173", "https://clarity-amber-eight.vercel.app/"],
     credentials: true,
   })
 );
